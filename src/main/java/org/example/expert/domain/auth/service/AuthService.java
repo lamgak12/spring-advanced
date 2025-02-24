@@ -25,13 +25,13 @@ public class AuthService {
 
     @Transactional
     public SignupResponse signup(SignupRequest signupRequest) {
-        // 중복 이메일 먼저 검사
+        // 역할 유효성 검사(올바른 입력 값, Enum에 정의한 role)
+        UserRole userRole = UserRole.of(signupRequest.getUserRole());
+
+        // 중복 이메일 먼저 검사 --> db io가 발생하는 부분은 최대한 뒤로 빼는 것이 비용 절감..
         if (userRepository.existsByEmail(signupRequest.getEmail())) {
             throw new InvalidRequestException("이미 존재하는 이메일입니다.");
         }
-
-        // 역할 유효성 검사(올바른 입력 값, Enum에 정의한 role)
-        UserRole userRole = UserRole.of(signupRequest.getUserRole());
 
         // 비밀번호 해싱
         String encodedPassword = passwordEncoder.encode(signupRequest.getPassword());
