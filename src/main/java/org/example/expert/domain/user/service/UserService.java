@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.expert.config.PasswordEncoder;
 import org.example.expert.domain.common.exception.InvalidRequestException;
 import org.example.expert.domain.user.dto.request.UserChangePasswordRequest;
+import org.example.expert.domain.user.dto.request.UserDeleteRequest;
 import org.example.expert.domain.user.dto.response.UserResponse;
 import org.example.expert.domain.user.entity.User;
 import org.example.expert.domain.user.repository.UserRepository;
@@ -24,7 +25,12 @@ public class UserService {
     }
 
     @Transactional
-    public void changePassword(long userId, UserChangePasswordRequest userChangePasswordRequest) {
+    public void changePassword(long authUserId, long userId, UserChangePasswordRequest userChangePasswordRequest) {
+
+        if(authUserId != userId){
+            throw new InvalidRequestException("자신의 계정만 삭제할 수 있습니다");
+        }
+
         // 유저 확인
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new InvalidRequestException("User not found"));
@@ -40,5 +46,21 @@ public class UserService {
         }
 
         user.changePassword(passwordEncoder.encode(userChangePasswordRequest.getNewPassword()));
+    }
+
+    @Transactional
+    public void deleteUser(long authUserId, long userId, UserDeleteRequest userDeleteRequest) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new InvalidRequestException("User not found"));
+
+        if(authUserId != userId){
+            throw new InvalidRequestException("자신의 계정만 삭제할 수 있습니다");
+        }
+
+        if (!passwordEncoder.matches(userDeleteRequest.getPassword(), user.getPassword())) {
+            throw new InvalidRequestException("잘못된 비밀번호입니다.");
+        }
+        userRepository.delete(user);
     }
 }

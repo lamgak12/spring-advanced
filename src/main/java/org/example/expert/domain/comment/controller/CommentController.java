@@ -2,6 +2,7 @@ package org.example.expert.domain.comment.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.expert.domain.comment.dto.request.CommentUpdateRequest;
 import org.example.expert.domain.comment.dto.request.CommentSaveRequest;
 import org.example.expert.domain.comment.dto.response.CommentResponse;
 import org.example.expert.domain.comment.dto.response.CommentSaveResponse;
@@ -15,11 +16,12 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/todos/{todoId}")
 public class CommentController {
 
     private final CommentService commentService;
 
-    @PostMapping("/todos/{todoId}/comments")
+    @PostMapping("/comments")
     public ResponseEntity<CommentSaveResponse> saveComment(
             @Auth AuthUser authUser,
             @PathVariable long todoId,
@@ -28,8 +30,27 @@ public class CommentController {
         return ResponseEntity.ok(commentService.saveComment(authUser, todoId, commentSaveRequest));
     }
 
-    @GetMapping("/todos/{todoId}/comments")
+    @GetMapping("/comments")
     public ResponseEntity<List<CommentResponse>> getComments(@PathVariable long todoId) {
         return ResponseEntity.ok(commentService.getComments(todoId));
+    }
+
+    @PatchMapping("/comments/{commentId}")
+    public void updateComment(
+            @Auth AuthUser authUser,
+            @PathVariable long todoId,
+            @PathVariable long commentId,
+            @Valid @RequestBody CommentUpdateRequest commentUpdateRequest
+    ){
+        commentService.updateComment(authUser.getId(), todoId, commentId, commentUpdateRequest);
+    }
+
+    @DeleteMapping("/comments/{commentId}")
+    public void deleteComment(
+            @Auth AuthUser authUser,
+            @PathVariable long todoId,
+            @PathVariable long commentId
+    ){
+        commentService.deleteComment(authUser.getId(), todoId, commentId);
     }
 }

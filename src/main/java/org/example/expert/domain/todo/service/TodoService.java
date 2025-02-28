@@ -5,6 +5,7 @@ import org.example.expert.client.WeatherClient;
 import org.example.expert.domain.common.dto.AuthUser;
 import org.example.expert.domain.common.exception.InvalidRequestException;
 import org.example.expert.domain.todo.dto.request.TodoSaveRequest;
+import org.example.expert.domain.todo.dto.request.TodoUpdateRequest;
 import org.example.expert.domain.todo.dto.response.TodoResponse;
 import org.example.expert.domain.todo.dto.response.TodoSaveResponse;
 import org.example.expert.domain.todo.entity.Todo;
@@ -16,6 +17,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +51,7 @@ public class TodoService {
         );
     }
 
+    @Transactional(readOnly = true)
     public Page<TodoResponse> getTodos(int page, int size) {
         Pageable pageable = PageRequest.of(page - 1, size);
 
@@ -64,20 +68,60 @@ public class TodoService {
         ));
     }
 
+    @Transactional(readOnly = true)
     public TodoResponse getTodo(long todoId) {
         Todo todo = todoRepository.findByIdWithUser(todoId)
                 .orElseThrow(() -> new InvalidRequestException("Todo not found"));
-
-        User user = todo.getUser();
 
         return new TodoResponse(
                 todo.getId(),
                 todo.getTitle(),
                 todo.getContents(),
                 todo.getWeather(),
-                new UserResponse(user.getId(), user.getEmail()),
+                new UserResponse(todo.getUser().getId(), todo.getUser().getEmail()),
                 todo.getCreatedAt(),
                 todo.getModifiedAt()
         );
+    }
+
+    @Transactional
+    public TodoResponse updateTodo(long userId, long todoId, TodoUpdateRequest TodoUpdateRequest) {
+
+        Todo todo = todoRepository.findByIdWithUser(todoId)
+                .orElseThrow(() -> new InvalidRequestException("Todo not found"));
+
+        if(!todo.getUser().getId().equals(userId)){
+            throw new InvalidRequestException("본인이 작성한 일정만 삭제할 수 있습니다.");
+        }
+
+        if(TodoUpdateRequest.getTitle() != null){
+            todo.updateTitle(TodoUpdateRequest.getTitle());
+        }
+
+        if(TodoUpdateRequest.getContents() != null){
+            todo.updateContents(TodoUpdateRequest.getContents());
+        }
+
+        return new TodoResponse(
+                todo.getId(),
+                todo.getTitle(),
+                todo.getContents(),
+                todo.getWeather(),
+                new UserResponse(todo.getUser().getId(), todo.getUser().getEmail()),
+                todo.getCreatedAt(),
+                todo.getModifiedAt()
+        );
+    }
+
+    @Transactional
+    public void deleteTodo(long userId, long todoId) {
+        Todo todo = todoRepository.findByIdWithUser(todoId)
+                .orElseThrow(() -> new InvalidRequestException("Todo not found"));
+
+        if(!todo.getUser().getId().equals(userId)){
+            throw new InvalidRequestException("본인이 작성한 일정만 삭제할 수 있습니다.");
+        }
+
+        todoRepository.delete(todo);
     }
 }
